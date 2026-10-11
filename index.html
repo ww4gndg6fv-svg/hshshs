@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPN Web | Kết nối an toàn</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 30%, #0b0f1c, #03050a);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .vpn-card {
+      background: rgba(18, 25, 40, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 2.5rem;
+      padding: 2rem 2.25rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 255, 255, 0.1) inset;
+      transition: all 0.2s ease;
+    }
+
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: #e0f2fe;
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.4rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #22d3ee, #3b82f6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .subhead {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+      padding-bottom: 1rem;
+    }
+
+    .subhead i {
+      font-style: normal;
+      color: #22d3ee;
+    }
+
+    /* Trạng thái kết nối */
+    .status-panel {
+      background: #0a0f1a;
+      border-radius: 2rem;
+      padding: 1.5rem 1.25rem;
+      margin-bottom: 2rem;
+      border: 1px solid #1e2a3a;
+      box-shadow: 0 10px 20px -5px #00000080;
+    }
+
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.3rem 1rem;
+      border-radius: 30px;
+      background: #1e2a3a;
+      color: #94a3b8;
+      transition: all 0.3s;
+    }
+
+    .status-badge.connected {
+      background: #0b3b2c;
+      color: #6ee7b7;
+      box-shadow: 0 0 10px #10b98180;
+    }
+
+    .status-badge.connecting {
+      background: #4a3a0e;
+      color: #fbbf24;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+
+    .ip-display {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .ip-label {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .ip-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      letter-spacing: 0.5px;
+      word-break: break-all;
+    }
+
+    .ip-value.secured {
+      color: #22d3ee;
+      text-shadow: 0 0 12px #22d3ee60;
+    }
+
+    /* Chọn server */
+    .server-selector {
+      margin-bottom: 2rem;
+    }
+
+    .server-selector label {
+      display: block;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    .server-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+
+    .server-option {
+      background: #111827;
+      border: 1.5px solid #1f2a3f;
+      border-radius: 1.2rem;
+      padding: 0.9rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #9ca3af;
+    }
+
+    .server-option .flag {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .server-option .country {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .server-option:hover {
+      border-color: #3b82f6;
+      background: #16202e;
+      color: #e0f2fe;
+    }
+
+    .server-option.active {
+      border-color: #22d3ee;
+      background: #0f1b2e;
+      color: white;
+      box-shadow: 0 0 15px #22d3ee30;
+    }
+
+    /* Nút kết nối */
+    .action-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .connect-btn {
+      width: 100%;
+      background: linear-gradient(145deg, #0e1625, #0a101c);
+      border: 1.5px solid #1e3a5f;
+      border-radius: 3rem;
+      padding: 1.2rem 1.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 0 #03050a, 0 12px 25px -5px black;
+    }
+
+    .connect-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 0 #03050a, 0 18px 30px -5px black;
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    .connect-btn:active:not(:disabled) {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #03050a, 0 12px 20px -5px black;
+    }
+
+    .connect-btn.connected {
+      background: linear-gradient(145deg, #0b2e1e, #052015);
+      border-color: #10b981;
+      color: #a7f3d0;
+      box-shadow: 0 8px 0 #03050a, 0 0 20px #10b98140;
+    }
+
+    .connect-btn.connecting {
+      background: linear-gradient(145deg, #3b2e0b, #1f1706);
+      border-color: #f59e0b;
+      color: #fde68a;
+      cursor: wait;
+    }
+
+    .connect-btn:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
+
+    /* Footer nhỏ */
+    .security-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: #4b5563;
+      font-size: 0.7rem;
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .security-note i {
+      font-style: normal;
+      font-size: 1rem;
+    }
+
+    /* layout cho icon */
+    .icon {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="vpn-card">
+    <h1>
+      <span>⚡ VPN</span> Web
+    </h1>
+    <div class="subhead">
+      <i>🔒</i> Kết nối mã hóa · ẩn danh · không log
+    </div>
+
+    <!-- Trạng thái -->
+    <div class="status-panel">
+      <div class="status-header">
+        <div class="ip-display">
+          <span class="ip-label">IP của bạn:</span>
+          <span id="ipAddress" class="ip-value">203.113.45.67</span>
+        </div>
+        <div id="statusBadge" class="status-badge">Chưa kết nối</div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b;">
+        <span>🛡️ Bảo vệ: <span id="protectionStatus">Không</span></span>
+        <span>📡 <span id="serverLocation">--</span></span>
+      </div>
+    </div>
+
+    <!-- Chọn server -->
+    <div class="server-selector">
+      <label>Chọn máy chủ VPN</label>
+      <div class="server-grid" id="serverGrid">
+        <div class="server-option active" data-server="vn" data-ip="103.199.16.88" data-location="Việt Nam">
+          <span class="flag">🇻🇳</span>
+          <span class="country">Việt Nam</span>
+        </div>
+        <div class="server-option" data-server="sg" data-ip="128.199.100.22" data-location="Singapore">
+          <span class="flag">🇸🇬</span>
+          <span class="country">Singapore</span>
+        </div>
+        <div class="server-option" data-server="jp" data-ip="133.130.110.45" data-location="Nhật Bản">
+          <span class="flag">🇯🇵</span>
+          <span class="country">Nhật Bản</span>
+        </div>
+        <div class="server-option" data-server="us" data-ip="104.18.32.7" data-location="Hoa Kỳ">
+          <span class="flag">🇺🇸</span>
+          <span class="country">Hoa Kỳ</span>
+        </div>
+        <div class="server-option" data-server="de" data-ip="85.10.200.11" data-location="Đức">
+          <span class="flag">🇩🇪</span>
+          <span class="country">Đức</span>
+        </div>
+        <div class="server-option" data-server="uk" data-ip="51.140.20.99" data-location="Anh">
+          <span class="flag">🇬🇧</span>
+          <span class="country">Anh</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nút kết nối -->
+    <div class="action-area">
+      <button id="connectBtn" class="connect-btn">
+        <span class="icon">🔌</span> KẾT NỐI
+      </button>
+      <div class="security-note">
+        <i>🔐</i> AES-256 · WireGuard® · không lưu log
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ----- Lấy elements -----
+      const ipAddressEl = document.getElementById('ipAddress');
+      const statusBadge = document.getElementById('statusBadge');
+      const protectionStatus = document.getElementById('protectionStatus');
+      const serverLocation = document.getElementById('serverLocation');
+      const connectBtn = document.getElementById('connectBtn');
+      const serverOptions = document.querySelectorAll('.server-option');
+
+      // ----- Trạng thái -----
+      let isConnected = false;
+      let isConnecting = false;
+      let currentServer = {
+        id: 'vn',
+        ip: '103.199.16.88',
+        location: 'Việt Nam'
+      };
+
+      // IP gốc (giả lập IP thật)
+      const REAL_IP = '203.113.45.67';
+
+      // ----- Hàm cập nhật UI theo trạng thái -----
+      function updateUI() {
+        // Cập nhật IP
+        if (isConnected) {
+          ipAddressEl.textContent = currentServer.ip;
+          ipAddressEl.classList.add('secured');
+          protectionStatus.textContent = 'Đã bật';
+          protectionStatus.style.color = '#6ee7b7';
+          serverLocation.textContent = currentServer.location;
+        } else {
+          ipAddressEl.textContent = REAL_IP;
+          ipAddressEl.classList.remove('secured');
+          protectionStatus.textContent = 'Không';
+          protectionStatus.style.color = '#f87171';
+          serverLocation.textContent = '--';
+        }
+
+        // Cập nhật badge trạng thái
+        if (isConnecting) {
+          statusBadge.textContent = 'Đang kết nối...';
+          statusBadge.className = 'status-badge connecting';
+        } else if (isConnected) {
+          statusBadge.textContent = 'Đã kết nối';
+          statusBadge.className = 'status-badge connected';
+        } else {
+          statusBadge.textContent = 'Chưa kết nối';
+          statusBadge.className = 'status-badge';
+        }
+
+        // Cập nhật nút kết nối
+        if (isConnecting) {
+          connectBtn.innerHTML = '<span class="icon">⏳</span> ĐANG KẾT NỐI...';
+          connectBtn.className = 'connect-btn connecting';
+          connectBtn.disabled = true;
+        } else if (isConnected) {
+          connectBtn.innerHTML = '<span class="icon">🛡️</span> NGẮT KẾT NỐI';
+          connectBtn.className = 'connect-btn connected';
+          connectBtn.disabled = false;
+        } else {
+          connectBtn.innerHTML = '<span class="icon">🔌</span> KẾT NỐI';
+          connectBtn.className = 'connect-btn';
+          connectBtn.disabled = false;
+        }
+      }
+
+      // ----- Hàm mô phỏng kết nối (delay) -----
+      function simulateConnection(callback) {
+        isConnecting = true;
+        updateUI();
+
+        // Sau 1.2 giây hoàn tất kết nối
+        setTimeout(() => {
+          isConnecting = false;
+          isConnected = true;
+          updateUI();
+          if (callback) callback();
+        }, 1200);
+      }
+
+      // ----- Hàm mô phỏng ngắt kết nối -----
+      function simulateDisconnect() {
+        isConnecting = true;
+        updateUI();
+
+        setTimeout(() => {
+          isConnecting = false;
+          isConnected = false;
+          updateUI();
+        }, 800);
+      }
+
+      // ----- Xử lý chọn server -----
+      serverOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          // Nếu đang kết nối hoặc đang trong quá trình kết nối -> không cho đổi
+          if (isConnecting) return;
+          
+          // Nếu đang connected mà đổi server -> ngắt kết nối trước
+          if (isConnected) {
+            // Ngắt kết nối hiện tại
+            isConnected = false;
+            // Cập nhật server mới
+            updateCurrentServerFromElement(this);
+            // Reset UI và thông báo
+            updateUI();
+            // Tự động kết nối lại sau 300ms (tạo cảm giác mượt)
+            setTimeout(() => {
+              simulateConnection();
+            }, 250);
+          } else {
+            // Chưa kết nối: chỉ cập nhật server đã chọn
+            updateCurrentServerFromElement(this);
+            // Cập nhật location hiển thị (nếu cần)
+            if (!isConnected) {
+              // hiển thị tạm thời location ở serverLocation? (không bắt buộc)
+            }
+          }
+
+          // Xóa active của tất cả, thêm active cho cái được chọn
+          serverOptions.forEach(opt => opt.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+
+      function updateCurrentServerFromElement(el) {
+        currentServer = {
+          id: el.dataset.server,
+          ip: el.dataset.ip,
+          location: el.dataset.location
+        };
+      }
+
+      // ----- Xử lý nút kết nối chính -----
+      connectBtn.addEventListener('click', function() {
+        if (isConnecting) return;
+
+        if (isConnected) {
+          // Ngắt kết nối
+          simulateDisconnect();
+        } else {
+          // Kết nối tới server đã chọn (currentServer đã lưu)
+          simulateConnection();
+        }
+      });
+
+      // ----- Khởi tạo: đảm bảo currentServer khớp với server active ban đầu -----
+      const activeServer = document.querySelector('.server-option.active');
+      if (activeServer) {
+        updateCurrentServerFromElement(activeServer);
+      }
+
+      // Hiển thị IP thật ban đầu
+      updateUI();
+
+      // (Tùy chọn) Hiệu ứng nhỏ: nhấp nháy cho badge khi connecting
+      // đã có animation pulse
+
+      // Xử lý click bên ngoài? Không cần thiết.
+    })();
+  </script>
+</body>
+</html>
